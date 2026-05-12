@@ -1,0 +1,21 @@
+{
+  "name": "linkedin-brand-agent",
+  "version": "0.1.0",
+  "description": "A two-pass LinkedIn brand-engagement agent. Drafts daily comments on relevant posts in your space, lets you approve them with one click, posts the approved ones (and likes each post). You set the positioning, the agent shows up smartly. Built for Cowork. Requires Claude in Chrome + Google Drive MCP.",
+  "author": {
+    "name": "houseofnimbus",
+    "url": "https://github.com/houseofnimbus"
+  },
+  "repository": "https://github.com/houseofnimbus/linkedin-brand-agent",
+  "license": "MIT",
+  "keywords": [
+    "linkedin",
+    "brand",
+    "engagement",
+    "marketing",
+    "social-media",
+    "cowork",
+    "claude-in-chrome",
+    "scheduled-tasks"
+  ]
+}

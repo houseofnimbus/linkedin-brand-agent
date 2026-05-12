@@ -1,0 +1,351 @@
+<!DOCTYPE html><script type="application/json" id="cowork-artifact-meta">
+{
+  "name": "LinkedIn Digest",
+  "schemaVersion": 1,
+  "description": "Daily LinkedIn comment digest. Card view with inline APPROVE/EDIT/SKIP actions. Submit writes decisions to Google Drive and fires the linkedin-post task automatically (which posts the comment AND likes the post).",
+  "mcpTools": [
+    "[GDRIVE_CREATE_FILE_TOOL_ID]"
+  ],
+  "mcpServerNames": [
+    "Google Drive"
+  ]
+}
+</script>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>LinkedIn Digest</title>
+<style>
+:root { color-scheme: light; }
+* { box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f3f2ef; color: #1d1d1d; margin: 0; padding: 16px; font-size: 14px; line-height: 1.55; }
+.header { display: flex; align-items: center; gap: 12px; background: #fff; padding: 14px 16px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #e0e0e0; position: sticky; top: 8px; z-index: 5; }
+.header-icon { width: 32px; height: 32px; background: #0a66c2; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 13px; flex-shrink: 0; }
+.header h1 { font-size: 16px; margin: 0; font-weight: 600; }
+.header-sub { color: #666; font-size: 12px; margin-top: 1px; }
+.banner { background: #fff8e1; border: 1px solid #ffe082; border-radius: 6px; padding: 10px 14px; margin-bottom: 12px; font-size: 13px; color: #6d4c00; }
+.banner.success { background: #e8f5e9; border-color: #a5d6a7; color: #1b5e20; }
+.banner.error { background: #fdecea; border-color: #f5c2c0; color: #7a1a1a; }
+.card { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 14px; margin-bottom: 12px; transition: all .2s; }
+.card.is-posted { background: #f7faf7; border-color: #a5d6a7; opacity: 0.85; }
+.card-head { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 8px; }
+.rank { width: 24px; height: 24px; background: #f3f2ef; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; color: #555; flex-shrink: 0; }
+.author { font-weight: 600; font-size: 14px; color: #1d1d1d; }
+.headline { color: #666; font-size: 12px; margin-top: 1px; line-height: 1.35; }
+.badges { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+.badge { padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+.badge.mode { background: #e8f0fe; color: #0a3d6a; }
+.badge.source { background: #f3f2ef; color: #555; }
+.badge.score { background: #fff3e0; color: #b34900; }
+.badge.trending { background: #ffebee; color: #c62828; }
+.badge.posted { background: #e8f5e9; color: #1b5e20; }
+.excerpt { font-size: 13px; color: #444; background: #fafafa; border-left: 3px solid #d0d0d0; padding: 8px 10px; border-radius: 0 4px 4px 0; margin: 8px 0; }
+.engage { font-size: 11px; color: #666; margin-bottom: 4px; }
+.velocity { font-size: 11px; color: #888; margin-top: -2px; margin-bottom: 6px; }
+.network { font-size: 11px; color: #555; margin-bottom: 6px; }
+.why { font-size: 12px; color: #555; font-style: italic; margin: 6px 0 8px; }
+.comment-box { background: #f8f9fc; border: 1px solid #d4dbe5; border-radius: 4px; padding: 10px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 13px; color: #1d1d1d; white-space: pre-wrap; min-height: 60px; }
+.comment-box[contenteditable="true"] { border-color: #0a66c2; background: #fff; outline: none; }
+.actions { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+.action-btn { flex: 1; min-width: 90px; padding: 8px 12px; border: 1px solid #ccc; background: #fff; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; color: #555; transition: all .15s; }
+.action-btn:hover:not(:disabled) { border-color: #888; }
+.action-btn.active.approve { background: #1b5e20; border-color: #1b5e20; color: #fff; }
+.action-btn.active.edit { background: #ef6c00; border-color: #ef6c00; color: #fff; }
+.action-btn.active.skip { background: #757575; border-color: #757575; color: #fff; }
+.action-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.posted-line { font-size: 11px; color: #1b5e20; margin-top: 8px; font-weight: 600; }
+.post-link-row { display: flex; align-items: center; gap: 8px; margin: 6px 0 4px; }
+.post-link-btn { padding: 4px 10px; border: 1px solid #0a66c2; background: #fff; color: #0a66c2; border-radius: 12px; font-size: 11px; font-weight: 600; cursor: pointer; }
+.post-link-btn:hover { background: #e8f0fe; }
+.post-url { font-family: monospace; font-size: 10px; color: #888; user-select: all; word-break: break-all; padding: 4px 6px; background: #f3f2ef; border-radius: 3px; }
+.submit-bar { position: sticky; bottom: 8px; background: #fff; border: 1px solid #0a66c2; border-radius: 8px; padding: 12px 14px; display: flex; align-items: center; gap: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-top: 16px; }
+.submit-summary { font-size: 12px; color: #555; flex: 1; }
+.submit-btn { padding: 9px 18px; border: 0; background: #0a66c2; color: #fff; border-radius: 18px; font-weight: 700; font-size: 13px; cursor: pointer; }
+.submit-btn:disabled { background: #b0bec5; cursor: not-allowed; }
+.empty-state { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 32px 24px; text-align: center; color: #555; }
+.empty-state h2 { font-size: 16px; margin: 0 0 8px; color: #1d1d1d; }
+.empty-state p { font-size: 13px; margin: 6px 0; }
+.notes-card { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 12px 14px; margin-top: 16px; font-size: 12px; color: #555; }
+.notes-card h3 { margin: 0 0 6px; font-size: 13px; color: #333; }
+.fallback-pre { background: #f3f2ef; padding: 8px; border-radius: 4px; font-family: monospace; font-size: 11px; max-height: 100px; overflow: auto; user-select: all; }
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="header-icon">in</div>
+  <div>
+    <h1>LinkedIn Digest</h1>
+    <div class="header-sub" id="header-sub">Awaiting first run · the agent will fill this in tomorrow morning</div>
+  </div>
+</div>
+
+<div id="status-banner"></div>
+
+<div id="cards"></div>
+
+<div class="submit-bar" id="submit-bar" style="display:none">
+  <div class="submit-summary" id="submit-summary">No actions selected yet — mark Approve, Edit, or Skip on each card.</div>
+  <button class="submit-btn" id="submit-btn" disabled>Submit &amp; post</button>
+</div>
+
+<div class="notes-card">
+  <h3>How this widget works</h3>
+  Every morning, the <code>linkedin-daily-digest</code> scheduled task fills this widget with the day's comment drafts. Click <strong>Approve</strong>, <strong>Edit</strong>, or <strong>Skip</strong> on each card. When you hit <strong>Submit &amp; post</strong>, the agent posts your approved comments and likes each commented post. If nothing's here yet, the agent hasn't run its first pass — check the scheduled task status in Cowork, or trigger it manually with "run my LinkedIn agent".
+</div>
+
+<script>
+// The setup wizard substitutes these placeholders during install:
+const DIGEST_DATE = "[TODAY_DATE]";                              // e.g. "2026-05-12"
+const GDRIVE_TOOL = "[GDRIVE_CREATE_FILE_TOOL_ID]";              // e.g. "mcp__abc123__create_file"
+const POST_TASK_ID = "linkedin-post";
+
+// The agent overwrites this array via mcp__cowork__update_artifact on each run.
+// On first install, it's empty — the widget renders an empty state.
+const drafts = [];
+
+// Pre-seeded already-posted ranks (rare — only when an earlier run partially posted).
+const PRESEEDED_POSTED = {};
+
+// ── Below this line is rendering and state plumbing. You shouldn't need to edit it. ──
+
+const lsKey = "linkedin-posted-" + DIGEST_DATE;
+let postedMap = {};
+try {
+  const stored = localStorage.getItem(lsKey);
+  if (stored) postedMap = JSON.parse(stored);
+} catch(e) {}
+Object.assign(postedMap, PRESEEDED_POSTED);
+drafts.forEach(d => {
+  if (postedMap[d.rank]) { d.posted = true; d.postedAt = postedMap[d.rank]; }
+});
+
+const stateKey = "linkedin-state-" + DIGEST_DATE;
+let state = {};
+try {
+  const s = localStorage.getItem(stateKey);
+  if (s) state = JSON.parse(s);
+} catch(e) {}
+
+function saveState() { try { localStorage.setItem(stateKey, JSON.stringify(state)); } catch(e){} }
+
+function markRanksPosted(ranks) {
+  const now = new Date().toISOString();
+  ranks.forEach(r => { postedMap[r] = now; });
+  try { localStorage.setItem(lsKey, JSON.stringify(postedMap)); } catch(e){}
+  drafts.forEach(d => { if(postedMap[d.rank]){d.posted=true;d.postedAt=postedMap[d.rank];}});
+  render();
+}
+
+function setAction(rank, action) {
+  const draft = drafts.find(d => d.rank === rank);
+  if (!draft) return;
+  if (draft.posted) return;
+  if (!state[rank]) state[rank] = {};
+  state[rank].action = action;
+  saveState();
+  render();
+}
+
+function setEditText(rank, text) {
+  if (!state[rank]) state[rank] = {};
+  state[rank].text = text;
+  saveState();
+}
+
+function fmtTime(iso) {
+  try {
+    const d = new Date(iso);
+    return d.toLocaleTimeString(undefined, {hour:'2-digit', minute:'2-digit', hour12:false});
+  } catch(e){ return ''; }
+}
+
+function copyUrl(url, btn) {
+  navigator.clipboard.writeText(url).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = "Copied!";
+    setTimeout(() => { btn.textContent = orig; }, 1800);
+  }).catch(() => { btn.textContent = "Select below"; });
+}
+
+function clipboardFallback(payload) {
+  const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+  navigator.clipboard.writeText("post " + b64).then(() => {
+    showBanner("Drive write failed — payload copied to clipboard. Paste into Cowork chat to post.", "error");
+  }).catch(() => {
+    const banner = document.getElementById("status-banner");
+    banner.innerHTML = '<div class="banner error"><strong>Clipboard blocked.</strong> Manually copy the payload below and paste into chat:<div class="fallback-pre">post ' + b64 + '</div></div>';
+  });
+}
+
+function showBanner(msg, type) {
+  const banner = document.getElementById("status-banner");
+  banner.innerHTML = '<div class="banner ' + (type||'') + '">' + msg + '</div>';
+}
+
+function escapeHtml(s) {
+  if (!s) return '';
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+function render() {
+  const submitBar = document.getElementById("submit-bar");
+  const container = document.getElementById("cards");
+  container.innerHTML = '';
+
+  if (!drafts || drafts.length === 0) {
+    container.innerHTML =
+      '<div class="empty-state">'
+      + '<h2>No digest yet</h2>'
+      + '<p>The agent fills this in every morning at the time you set during install.</p>'
+      + '<p>To trigger a run now, type <code>run my LinkedIn agent</code> in Cowork chat.</p>'
+      + '</div>';
+    submitBar.style.display = 'none';
+    return;
+  }
+
+  submitBar.style.display = '';
+
+  const postedRanks = drafts.filter(d => d.posted).map(d => d.rank);
+  const banner = document.getElementById("status-banner");
+  if (postedRanks.length === drafts.length && drafts.length > 0) {
+    banner.innerHTML = '<div class="banner success"><strong>All ' + drafts.length + ' drafts already posted today.</strong> Cards are locked to prevent duplicates.</div>';
+  } else if (postedRanks.length > 0) {
+    banner.innerHTML = '<div class="banner success">' + postedRanks.length + ' of ' + drafts.length + ' already posted today. Locked cards have a green POSTED badge.</div>';
+  } else {
+    banner.innerHTML = '';
+  }
+
+  drafts.forEach(d => {
+    const card = document.createElement("div");
+    card.className = "card" + (d.posted ? " is-posted" : "");
+    const cur = state[d.rank] || {};
+    const editText = cur.text || d.comment;
+
+    let badges = '<span class="badge mode">' + d.mode + '</span>'
+      + '<span class="badge source">' + d.source + '</span>'
+      + '<span class="badge score">' + d.score + '/10</span>';
+    if (d.trending) badges += '<span class="badge trending">TRENDING</span>';
+    if (d.posted) badges += '<span class="badge posted">POSTED</span>';
+
+    let networkLine = '';
+    if (d.networkEngagers && d.networkEngagers.length) {
+      networkLine = '<div class="network">In your network: ' + d.networkEngagers.join(", ") + '</div>';
+    }
+    let velocityLine = '';
+    if (d.velocity) velocityLine = '<div class="velocity">Velocity: ' + d.velocity + '</div>';
+
+    let postedLine = '';
+    if (d.posted) postedLine = '<div class="posted-line">Posted ' + fmtTime(d.postedAt) + ' · locked from re-posting</div>';
+
+    const isEdit = cur.action === "edit";
+
+    card.innerHTML =
+      '<div class="card-head">'
+      + '<div class="rank">' + d.rank + '</div>'
+      + '<div style="flex:1; min-width:0">'
+      +   '<div class="author">' + escapeHtml(d.author) + '</div>'
+      +   '<div class="headline">' + escapeHtml(d.headline) + '</div>'
+      +   '<div class="badges">' + badges + '</div>'
+      + '</div>'
+      + '</div>'
+      + '<div class="post-link-row">'
+      +   '<button class="post-link-btn" data-url="' + d.url + '">Copy post URL</button>'
+      + '</div>'
+      + '<div class="post-url">' + d.url + '</div>'
+      + '<div class="excerpt">' + escapeHtml(d.excerpt) + '</div>'
+      + '<div class="engage">' + escapeHtml(d.engagement || '') + '</div>'
+      + velocityLine
+      + networkLine
+      + '<div class="why">' + escapeHtml(d.why) + '</div>'
+      + '<div class="comment-box" data-rank="' + d.rank + '"' + (isEdit ? ' contenteditable="true"' : '') + '>' + escapeHtml(editText) + '</div>'
+      + '<div class="actions">'
+      +   '<button class="action-btn approve' + (cur.action === "approve" ? " active" : "") + '" data-rank="' + d.rank + '" data-action="approve"' + (d.posted ? " disabled" : "") + '>Approve</button>'
+      +   '<button class="action-btn edit' + (cur.action === "edit" ? " active" : "") + '" data-rank="' + d.rank + '" data-action="edit"' + (d.posted ? " disabled" : "") + '>Edit</button>'
+      +   '<button class="action-btn skip' + (cur.action === "skip" ? " active" : "") + '" data-rank="' + d.rank + '" data-action="skip"' + (d.posted ? " disabled" : "") + '>Skip</button>'
+      + '</div>'
+      + postedLine;
+
+    container.appendChild(card);
+  });
+
+  container.querySelectorAll(".action-btn").forEach(b => {
+    b.addEventListener("click", e => {
+      const r = parseInt(b.getAttribute("data-rank"), 10);
+      const a = b.getAttribute("data-action");
+      setAction(r, a);
+    });
+  });
+  container.querySelectorAll(".post-link-btn").forEach(b => {
+    b.addEventListener("click", e => copyUrl(b.getAttribute("data-url"), b));
+  });
+  container.querySelectorAll(".comment-box[contenteditable]").forEach(b => {
+    b.addEventListener("input", e => {
+      const r = parseInt(b.getAttribute("data-rank"), 10);
+      setEditText(r, b.innerText);
+    });
+  });
+
+  updateSubmitBar();
+}
+
+function updateSubmitBar() {
+  const decisions = drafts.filter(d => !d.posted && state[d.rank] && state[d.rank].action);
+  const summary = document.getElementById("submit-summary");
+  const btn = document.getElementById("submit-btn");
+  const approveCount = decisions.filter(d => state[d.rank].action === "approve" || state[d.rank].action === "edit").length;
+  const skipCount = decisions.filter(d => state[d.rank].action === "skip").length;
+  if (decisions.length === 0) {
+    summary.textContent = "No actions selected yet — mark Approve, Edit, or Skip on each card.";
+    btn.disabled = true;
+  } else {
+    summary.textContent = approveCount + " to post · " + skipCount + " skipped · " + (drafts.length - decisions.length - drafts.filter(d => d.posted).length) + " unset";
+    btn.disabled = approveCount === 0;
+  }
+}
+
+document.getElementById("submit-btn").addEventListener("click", async () => {
+  const decisions = {};
+  drafts.forEach(d => {
+    if (d.posted) return;
+    const cur = state[d.rank];
+    if (cur && cur.action) {
+      decisions[d.rank] = { action: cur.action };
+      if (cur.action === "edit" && cur.text) decisions[d.rank].text = cur.text;
+    }
+  });
+  const toPostRanks = Object.keys(decisions).filter(r => decisions[r].action === "approve" || decisions[r].action === "edit").map(r => parseInt(r,10));
+  if (toPostRanks.length === 0) {
+    showBanner("Nothing to post — all approved/edit cards are already posted.", "error");
+    return;
+  }
+  const payload = { date: DIGEST_DATE, decisions };
+
+  showBanner("Sending to Drive…", "");
+  try {
+    const driveResult = await window.cowork.callMcpTool(GDRIVE_TOOL, {
+      title: "linkedin-pending-" + DIGEST_DATE,
+      textContent: JSON.stringify(payload),
+      contentMimeType: "text/plain",
+      disableConversionToGoogleType: true
+    });
+    const driveText = JSON.stringify(driveResult);
+    if (driveText.includes("Tool call failed") || driveText.includes('"error"')) {
+      throw new Error("Drive write returned error: " + driveText.slice(0, 200));
+    }
+    try {
+      await window.cowork.runScheduledTask(POST_TASK_ID);
+      showBanner("Sent to posting agent. You'll get a notification when done.", "success");
+      markRanksPosted(toPostRanks);
+    } catch (taskErr) {
+      showBanner("Decisions saved to Drive but task trigger failed. Falling back to clipboard.", "error");
+      clipboardFallback(payload);
+    }
+  } catch (err) {
+    clipboardFallback(payload);
+  }
+});
+
+render();
+</script>
+</body>
+</html>

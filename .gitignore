@@ -1,0 +1,22 @@
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*~
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Local-only test artefacts
+*.log
+*.bak
+.tmp/
+
+# Don't commit any actual digests or briefs if someone tests inside the repo
+digests/
+briefs/
