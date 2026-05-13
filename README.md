@@ -4,6 +4,14 @@ A two-pass LinkedIn engagement agent for marketing teams. Every morning it draft
 the day's comments for your brand. You click Approve, Edit, or Skip on each one.
 It posts the approved ones and likes each post.
 
+<p align="center">
+  <img src="Demo%20Dashboard.gif" width="720" alt="LinkedIn Brand Agent — daily digest walkthrough" />
+</p>
+
+<p align="center">
+  <em>Five minutes a morning. Approve, edit, skip — the agent handles the rest.</em>
+</p>
+
 You set the brand voice. The agent shows up smartly. You stay in control.
 
 Built for [Cowork](https://claude.ai/cowork). Requires Claude in Chrome and Google
@@ -47,6 +55,10 @@ LinkedIn Digest, ready for review.
 **Pass 2 — Review (whenever you have 5 minutes).**
 Open the widget. For each draft, click Approve, Edit, or Skip. If you click Edit,
 rewrite the comment in place. When you've gone through them, click Submit.
+
+<p align="center">
+  <img src="Dashboard.png" width="720" alt="The LinkedIn Digest widget — one card per draft, with Approve / Edit / Skip" />
+</p>
 
 **Pass 3 — Post (automatic, triggered by your Submit).**
 The agent goes back into LinkedIn and posts each approved comment, then likes the
